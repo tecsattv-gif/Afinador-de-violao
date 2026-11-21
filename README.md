@@ -2,7 +2,14 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.6.0**
+**Versão atual: 1.7.0**
+
+### Novidades da 1.7.0
+- **Enviar PDFs** (WhatsApp, e-mail, Drive, Bluetooth…):
+  - no leitor, botão **Enviar** manda o PDF que está aberto;
+  - na lista de Aulas/Cifras, botão **Selecionar**: toque nos PDFs para marcar (☑), **Todos** marca a lista inteira,
+    e **Enviar (N)** manda todos de uma vez; dá para marcar de gêneros diferentes e pela busca;
+  - toque longo num PDF também tem **Enviar** e **Selecionar vários para enviar**.
 
 ### Novidades da 1.6.0
 - **PDFs escaneados (imagem)** agora também são separados automaticamente: o app lê cada página com

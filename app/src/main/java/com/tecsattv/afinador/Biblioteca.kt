@@ -70,6 +70,27 @@ object Biblioteca {
         }
     }
 
+    /** Abre a janela do Android para enviar um ou vários PDFs (WhatsApp, e-mail, Drive, Bluetooth…). */
+    fun enviar(ctx: Context, arquivos: List<File>) {
+        if (arquivos.isEmpty()) return
+        val aut = ctx.packageName + ".arquivos"
+        val uris = ArrayList(arquivos.map { androidx.core.content.FileProvider.getUriForFile(ctx, aut, it) })
+        val i = if (uris.size == 1) {
+            android.content.Intent(android.content.Intent.ACTION_SEND).putExtra(android.content.Intent.EXTRA_STREAM, uris[0])
+        } else {
+            android.content.Intent(android.content.Intent.ACTION_SEND_MULTIPLE).putParcelableArrayListExtra(android.content.Intent.EXTRA_STREAM, uris)
+        }
+        i.type = "application/pdf"
+        i.putExtra(android.content.Intent.EXTRA_SUBJECT, arquivos.joinToString(", ") { titulo(it) }.take(200))
+        // dá permissão de leitura a quem receber
+        val clip = android.content.ClipData.newUri(ctx.contentResolver, titulo(arquivos[0]), uris[0])
+        for (k in 1 until uris.size) clip.addItem(android.content.ClipData.Item(uris[k]))
+        i.clipData = clip
+        i.addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        val titulo = if (uris.size == 1) "Enviar PDF" else "Enviar ${uris.size} PDFs"
+        ctx.startActivity(android.content.Intent.createChooser(i, titulo))
+    }
+
     /** Grava toda a biblioteca num arquivo .zip escolhido pelo usuário. */
     fun exportarZip(ctx: Context, uri: Uri): Int {
         val b = base(ctx)

@@ -41,6 +41,13 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
     private val lista = ListView(act)
     private val vazio = TextView(act)
     private var itens: List<File> = emptyList()
+
+    // modo de seleção (para enviar vários PDFs)
+    private var selecionando = false
+    private val selecionados = linkedSetOf<String>()
+    private lateinit var btImportar: TextView
+    private lateinit var btSelecionar: TextView
+    private lateinit var btBackup: TextView
     private val adaptador = Adaptador()
 
     init {
@@ -73,8 +80,12 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
         })
 
         val botoes = LinearLayout(act).apply { orientation = HORIZONTAL; isBaselineAligned = false }
-        botoes.addView(botao("＋  Importar PDF") { act.pedirPdfs(this) }, peso(1.6f))
-        botoes.addView(botao("Backup") { dialogoBackup() }, peso(1f))
+        btImportar = botao("＋ Importar") { if (selecionando) enviarSelecionados() else act.pedirPdfs(this) }
+        btSelecionar = botao("Selecionar") { if (selecionando) sairSelecao() else entrarSelecao(null) }
+        btBackup = botao("Backup") { dialogoBackup() }
+        botoes.addView(btImportar, peso(1.3f))
+        botoes.addView(btSelecionar, peso(1.1f))
+        botoes.addView(btBackup, peso(1f))
         addView(botoes)
 
         vazio.apply {
@@ -86,13 +97,15 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
         lista.apply {
             divider = null
             adapter = adaptador
-            setOnItemClickListener { _, _, pos, _ -> abrir(itens[pos]) }
+            setOnItemClickListener { _, _, pos, _ ->
+                if (selecionando) alternar(itens[pos]) else abrir(itens[pos])
+            }
             setOnItemLongClickListener { _, _, pos, _ -> opcoesArquivo(itens[pos]); true }
         }
         addView(lista, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         addView(TextView(act).apply {
-            text = "Toque para abrir · toque longo para renomear, mover ou apagar"
+            text = "Toque para abrir · toque longo para enviar, renomear, mover ou apagar"
             setTextColor(fraco); textSize = 12f; gravity = Gravity.CENTER
         })
 
@@ -223,8 +236,10 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
 
     private fun opcoesArquivo(f: File) {
         AlertDialog.Builder(act).setTitle(Biblioteca.titulo(f))
-            .setItems(arrayOf("Abrir", "Renomear", "Mover para…", "Apagar")) { _, i ->
+            .setItems(arrayOf("Abrir", "Renomear", "Mover para…", "Apagar", "Enviar", "Selecionar vários para enviar")) { _, i ->
                 when (i) {
+                    4 -> Biblioteca.enviar(act, listOf(f))
+                    5 -> entrarSelecao(f)
                     0 -> abrir(f)
                     1 -> pedirTexto("Renomear", Biblioteca.titulo(f)) { novo ->
                         val alvo = File(f.parentFile, Biblioteca.nomeSeguro(novo) + ".pdf")
@@ -251,6 +266,55 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
                 if (f.renameTo(alvo)) aviso("Movido para ${rotulos[i]}")
                 act.recarregarBibliotecas()
             }.show()
+    }
+
+    // ---------- seleção e envio ----------
+
+    private fun entrarSelecao(primeiro: File?) {
+        selecionando = true
+        selecionados.clear()
+        primeiro?.let { selecionados.add(it.absolutePath) }
+        atualizarSelecao()
+    }
+
+    private fun sairSelecao() {
+        selecionando = false
+        selecionados.clear()
+        atualizarSelecao()
+    }
+
+    private fun alternar(f: File) {
+        if (!selecionados.remove(f.absolutePath)) selecionados.add(f.absolutePath)
+        atualizarSelecao()
+    }
+
+    private fun atualizarSelecao() {
+        if (selecionando) {
+            btImportar.text = "Enviar (${selecionados.size})"
+            btImportar.setTextColor(verde)
+            btSelecionar.text = "Cancelar"
+            btBackup.text = "Todos"
+            btBackup.setOnClickListener {
+                // marca/desmarca todos os da lista atual
+                val caminhos = itens.map { it.absolutePath }
+                if (caminhos.all { it in selecionados }) selecionados.removeAll(caminhos.toSet()) else selecionados.addAll(caminhos)
+                atualizarSelecao()
+            }
+        } else {
+            btImportar.text = "＋ Importar"
+            btImportar.setTextColor(texto)
+            btSelecionar.text = "Selecionar"
+            btBackup.text = "Backup"
+            btBackup.setOnClickListener { dialogoBackup() }
+        }
+        adaptador.notifyDataSetChanged()
+    }
+
+    private fun enviarSelecionados() {
+        val arqs = selecionados.map { File(it) }.filter { it.exists() }
+        if (arqs.isEmpty()) { aviso("Toque nos PDFs para marcar"); return }
+        Biblioteca.enviar(act, arqs)
+        sairSelecao()
     }
 
     // ---------- backup ----------
@@ -280,7 +344,14 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
                 layoutParams = android.widget.AbsListView.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT)
             }
             val f = itens[p]
-            (v.getChildAt(0) as TextView).text = Biblioteca.titulo(f)
+            val marcado = selecionando && f.absolutePath in selecionados
+            (v.getChildAt(0) as TextView).text = when {
+                !selecionando -> Biblioteca.titulo(f)
+                marcado -> "☑  " + Biblioteca.titulo(f)
+                else -> "☐  " + Biblioteca.titulo(f)
+            }
+            (v.getChildAt(0) as TextView).setTextColor(if (marcado) verde else texto)
+            v.background = fundo(if (marcado) Color.parseColor("#163A27") else cartao, if (marcado) verde else cartao)
             val kb = f.length() / 1024
             val tam = if (kb > 1024) String.format("%.1f MB", kb / 1024.0) else "$kb KB"
             (v.getChildAt(1) as TextView).text =

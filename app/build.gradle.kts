@@ -11,8 +11,8 @@ android {
         applicationId = "com.tecsattv.afinador"
         minSdk = 21
         targetSdk = 34
-        versionCode = 9
-        versionName = "1.6.0"
+        versionCode = 10
+        versionName = "1.7.0"
     }
 
     signingConfigs {
@@ -52,4 +52,6 @@ dependencies {
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
     // reconhecimento de texto (OCR) offline para PDFs escaneados
     implementation("com.google.mlkit:text-recognition:16.0.0")
+    // compartilhar PDFs com outros apps (WhatsApp, e-mail, Drive…)
+    implementation("androidx.core:core:1.12.0")
 }

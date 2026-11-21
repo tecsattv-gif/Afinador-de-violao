@@ -207,6 +207,7 @@ class PdfActivity : Activity() {
             paginaTxt = TextView(this@PdfActivity).apply { setTextColor(fraco); textSize = 12f }
             addView(paginaTxt)
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
+        topo.addView(botao("Enviar") { Biblioteca.enviar(this, listOf(arquivo)) }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, (44 * dp).toInt()).apply { rightMargin = (6 * dp).toInt() })
         topo.addView(botao("✂ Separar") { dialogoSeparar() }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, (44 * dp).toInt()))
         raiz.addView(topo)
 
