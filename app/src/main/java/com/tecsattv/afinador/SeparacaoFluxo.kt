@@ -139,7 +139,9 @@ class SeparacaoFluxo(
 
                 val baixo = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL }
                 baixo.addView(TextView(act).apply {
-                    text = if (t.ini == t.fim) "pág. ${t.ini + 1}" else "pág. ${t.ini + 1}–${t.fim + 1}"
+                    val parcial = t.partes.any { it.y0 > 0.02f || it.y1 < 0.98f }
+                    text = (if (t.ini == t.fim) "pág. ${t.ini + 1}" else "pág. ${t.ini + 1}–${t.fim + 1}") +
+                        (if (parcial) " (parte da página)" else "")
                     setTextColor(fraco); textSize = 13f
                     setPadding((8 * dp).toInt(), 0, 0, 0)
                 }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -148,7 +150,7 @@ class SeparacaoFluxo(
                 })
                 if (i > 0) baixo.addView(pilula("⤒ Juntar", false) {
                     val ant = trechos[i - 1]
-                    ant.fim = t.fim
+                    ant.juntar(t)
                     trechos.removeAt(i)
                     desenhar()
                 })
@@ -158,17 +160,17 @@ class SeparacaoFluxo(
                 })
             }
         }
-        val original = trechos.map { it.copy() }
+        val original = trechos.map { it.copia() }
         // atalhos: cada página vira uma música / voltar ao que o app encontrou
         atalhos.addView(pilula("Uma música por página", false) {
             trechos.clear()
             for (p in 0 until res.paginas) trechos.add(
-                Separador.Trecho(res.tituloPagina.getOrElse(p) { "Página ${p + 1}" }, p, p, res.musicaPagina.getOrElse(p) { true })
+                Separador.Trecho(res.tituloPagina.getOrElse(p) { "Página ${p + 1}" }, mutableListOf(Separador.Pedaco(p, 0f, 1f)), res.musicaPagina.getOrElse(p) { true })
             )
             desenhar()
         })
         atalhos.addView(pilula("Desfazer", false) {
-            trechos.clear(); trechos.addAll(original.map { it.copy() }); desenhar()
+            trechos.clear(); trechos.addAll(original.map { it.copia() }); desenhar()
         })
         desenhar()
 

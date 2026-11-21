@@ -53,6 +53,7 @@ class PdfActivity : Activity() {
     private lateinit var lista: ListView
     private lateinit var caixaLista: FrameLayout
     private lateinit var paginaTxt: TextView
+    private lateinit var tituloTxt: TextView
     private lateinit var zoomTxt: TextView
     private lateinit var btRolar: TextView
     private val zoomMin = 1f
@@ -200,10 +201,13 @@ class PdfActivity : Activity() {
         topo.addView(LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding((8 * dp).toInt(), 0, 0, 0)
-            addView(TextView(this@PdfActivity).apply {
-                text = Biblioteca.titulo(arquivo); setTextColor(texto); textSize = 16f
+            tituloTxt = TextView(this@PdfActivity).apply {
+                text = "✎ " + Biblioteca.titulo(arquivo); setTextColor(texto); textSize = 16f
                 maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END
-            })
+            }
+            addView(tituloTxt)
+            // tocar no título abre a edição
+            setOnClickListener { editarTitulo() }
             paginaTxt = TextView(this@PdfActivity).apply { setTextColor(fraco); textSize = 12f }
             addView(paginaTxt)
         }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
@@ -261,6 +265,38 @@ class PdfActivity : Activity() {
         setPadding((12 * dp).toInt(), 0, (12 * dp).toInt(), 0)
         background = GradientDrawable().apply { cornerRadius = 10 * dp; setColor(cartao) }
         setOnClickListener { acao() }
+    }
+
+    // ---------- editar título ----------
+
+    private fun editarTitulo() {
+        pararRolagem()
+        val et = EditText(this).apply {
+            setText(Biblioteca.titulo(arquivo)); setSelection(text.length)
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        val caixa = LinearLayout(this).apply {
+            setPadding((20 * dp).toInt(), (8 * dp).toInt(), (20 * dp).toInt(), 0)
+            addView(et, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT))
+        }
+        AlertDialog.Builder(this).setTitle("✎ Editar título").setView(caixa)
+            .setPositiveButton("Salvar") { _, _ ->
+                val novoNome = Biblioteca.nomeSeguro(et.text.toString())
+                if (novoNome == Biblioteca.titulo(arquivo)) return@setPositiveButton
+                val alvo = File(arquivo.parentFile, "$novoNome.pdf")
+                if (alvo.exists()) { Toast.makeText(this, "Já existe uma música com esse nome", Toast.LENGTH_LONG).show(); return@setPositiveButton }
+                if (arquivo.renameTo(alvo)) {
+                    // leva junto a página e o zoom guardados
+                    val pag = prefs.getInt("pag:" + arquivo.absolutePath, 0)
+                    val z = prefs.getFloat("zoomf:" + arquivo.absolutePath, 1f)
+                    prefs.edit().remove("pag:" + arquivo.absolutePath).remove("zoomf:" + arquivo.absolutePath)
+                        .putInt("pag:" + alvo.absolutePath, pag).putFloat("zoomf:" + alvo.absolutePath, z).apply()
+                    arquivo = alvo
+                    tituloTxt.text = "✎ " + novoNome
+                    Toast.makeText(this, "Título salvo", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancelar", null).show()
     }
 
     // ---------- zoom e rolagem ----------

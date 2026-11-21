@@ -2,7 +2,16 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.7.0**
+**Versão atual: 1.8.0**
+
+### Novidades da 1.8.0
+- Separação de songbooks refeita:
+  - o **título** é a linha logo antes de "Introdução:", "Tom:", "Ritmo:" (ou com "Ritmo:/Tom:" na mesma linha),
+    a linha depois de um separador "-------", ou a linha em letra maior — não pega mais um trecho da letra;
+  - **várias músicas na mesma página** são separadas: o app recorta a página e cada música vira um PDF só com o seu pedaço;
+  - título limpo: "Teu olhar (Leandro e Leonardo)  Ritmo: Pop" vira **"Teu olhar - Leandro e Leonardo"**;
+  - capa/índice antes da primeira música aparece desmarcado na lista.
+- **✎ Editar título**: no leitor, toque no título (✎) para editar; na lista, toque longo → "✎ Editar título".
 
 ### Novidades da 1.7.0
 - **Enviar PDFs** (WhatsApp, e-mail, Drive, Bluetooth…):

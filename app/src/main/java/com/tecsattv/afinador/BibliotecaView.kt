@@ -105,7 +105,7 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
         addView(lista, LayoutParams(LayoutParams.MATCH_PARENT, 0, 1f))
 
         addView(TextView(act).apply {
-            text = "Toque para abrir · toque longo para enviar, renomear, mover ou apagar"
+            text = "Toque para abrir · toque longo para editar título, enviar, mover ou apagar"
             setTextColor(fraco); textSize = 12f; gravity = Gravity.CENTER
         })
 
@@ -236,12 +236,12 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
 
     private fun opcoesArquivo(f: File) {
         AlertDialog.Builder(act).setTitle(Biblioteca.titulo(f))
-            .setItems(arrayOf("Abrir", "Renomear", "Mover para…", "Apagar", "Enviar", "Selecionar vários para enviar")) { _, i ->
+            .setItems(arrayOf("Abrir", "✎ Editar título", "Mover para…", "Apagar", "Enviar", "Selecionar vários para enviar")) { _, i ->
                 when (i) {
                     4 -> Biblioteca.enviar(act, listOf(f))
                     5 -> entrarSelecao(f)
                     0 -> abrir(f)
-                    1 -> pedirTexto("Renomear", Biblioteca.titulo(f)) { novo ->
+                    1 -> pedirTexto("✎ Editar título", Biblioteca.titulo(f)) { novo ->
                         val alvo = File(f.parentFile, Biblioteca.nomeSeguro(novo) + ".pdf")
                         if (alvo.exists()) aviso("Já existe um arquivo com esse nome") else { f.renameTo(alvo); recarregar() }
                     }
