@@ -149,15 +149,24 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
         val nomes = uris.map { nomeDe(it) }
         val aulas = nomes.count { pareceAula(it) }
         val opcoes = arrayOf(
-            "Separar automaticamente pelo nome ($aulas aula(s), ${uris.size - aulas} cifra(s))",
+            "Ler o PDF e separar cada música (título automático)",
+            "Separar pelo nome do arquivo ($aulas aula(s), ${uris.size - aulas} cifra(s))",
             "Tudo em ${if (tipo == "aulas") "Aulas" else "Cifras"} › $categoria"
         )
         AlertDialog.Builder(act)
             .setTitle("Importar ${uris.size} PDF(s)")
             .setItems(opcoes) { _, qual ->
+                if (qual == 0) {
+                    SeparacaoFluxo(
+                        act, uris, nomes,
+                        cifraPadrao = if (tipo == "cifras") categoria else "Geral",
+                        aulaPadrao = if (tipo == "aulas") categoria else "Geral"
+                    ) { act.recarregarBibliotecas() }.iniciar()
+                    return@setItems
+                }
                 var ok = 0
                 uris.forEachIndexed { i, u ->
-                    val destino = if (qual == 1) Biblioteca.pasta(act, tipo, categoria) else {
+                    val destino = if (qual == 2) Biblioteca.pasta(act, tipo, categoria) else {
                         val t = if (pareceAula(nomes[i])) "aulas" else "cifras"
                         // mantém a categoria atual se for do mesmo tipo; senão vai para "Geral"
                         Biblioteca.pasta(act, t, if (t == tipo) categoria else "Geral")

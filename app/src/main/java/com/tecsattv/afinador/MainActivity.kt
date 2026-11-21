@@ -76,6 +76,7 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(applicationContext)
         val prefs = getPreferences(MODE_PRIVATE)
         la = prefs.getInt("la", 440)
         modo = prefs.getInt("modo", -1)

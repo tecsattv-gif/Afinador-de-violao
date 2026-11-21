@@ -2,7 +2,19 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.4.0**
+**Versão atual: 1.5.0**
+
+### Novidades da 1.5.0
+- **Importar songbook com títulos automáticos**: ao importar, escolha "Ler o PDF e separar cada música".
+  O app lê o texto do PDF, encontra onde começa cada música (título no topo da página, "Tom:", artista),
+  pega o **título** e marca se é **Música** (tem linhas de acordes) ou **Aula**.
+  - Antes de separar, aparece a lista para conferir: corrigir títulos, desmarcar, trocar Música/Aula
+    e **⤒ Juntar** com a de cima (quando uma música foi cortada em duas).
+  - Escolha o gênero das músicas (ou crie um novo) e a categoria das aulas; opção de guardar também o PDF completo.
+  - Cada música vira um PDF próprio, mantendo o texto e a qualidade originais.
+  - PDFs escaneados (só imagem) não têm texto: o app avisa e guarda inteiro para separar com ✂ no leitor.
+- **Zoom manual** no leitor: **pinça com dois dedos** (100% a 400%) e **toque duplo** para alternar 100% / 200%.
+- **✂ Separar** no leitor agora mantém o texto original do PDF (antes virava imagem).
 
 ### Novidades da 1.4.0
 - Novas abas **Aulas** e **Cifras** (biblioteca de PDFs guardada só no celular):
@@ -14,7 +26,7 @@ App Android para afinar o violão pelo microfone do celular, na afinação padr�
   - busca pelo nome; toque longo num PDF para renomear, **mover** (inclusive entre Aulas e Cifras) ou apagar;
   - **Backup**: exporta toda a biblioteca num `.zip` e restaura sem apagar o que já existe.
 - **Leitor de PDF** dentro do app:
-  - zoom de 100% a 300%, **rolagem automática** com velocidade ajustável (para tocar sem as mãos);
+  - zoom de 100% a 400% (botões −/+, pinça com dois dedos ou toque duplo), **rolagem automática** com velocidade ajustável (para tocar sem as mãos);
   - guarda a última página e o zoom de cada arquivo; a tela fica ligada;
   - **✂ Separar**: escolha "da página X até Y", se é música (cifra) ou aula/tutorial e o gênero/categoria
     — o app cria um PDF novo só com essas páginas no lugar certo (ideal para songbooks que misturam tudo).
@@ -79,7 +91,7 @@ atualizações instalam por cima sem perder as configurações.
 
 ## Técnica
 
-- Kotlin nativo, sem bibliotecas externas.
+- Kotlin nativo; única biblioteca externa: [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) para ler o texto dos PDFs e separar páginas.
 - Detecção de frequência pelo algoritmo YIN (44,1 kHz, janela de 4096 amostras),
   com filtro de saltos, mediana das últimas 7 leituras e média móvel para estabilizar o ponteiro.
 

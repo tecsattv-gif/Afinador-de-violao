@@ -11,8 +11,8 @@ android {
         applicationId = "com.tecsattv.afinador"
         minSdk = 21
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.4.0"
+        versionCode = 6
+        versionName = "1.5.0"
     }
 
     signingConfigs {
@@ -45,4 +45,9 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+dependencies {
+    // leitura do texto dos PDFs (títulos das músicas) e separação de páginas
+    implementation("com.tom-roush:pdfbox-android:2.0.27.0")
 }

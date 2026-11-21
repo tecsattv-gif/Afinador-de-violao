@@ -55,8 +55,87 @@ class PdfActivity : Activity() {
     private lateinit var paginaTxt: TextView
     private lateinit var zoomTxt: TextView
     private lateinit var btRolar: TextView
-    private val zooms = floatArrayOf(1f, 1.25f, 1.5f, 2f, 2.5f, 3f)
-    private var zoomIdx = 0
+    private val zoomMin = 1f
+    private val zoomMax = 4f
+    private var zoom = 1f
+    // zoom com dois dedos (pinça) e toque duplo
+    private var zoomGesto = 1f
+    private var cancelouFilhos = false
+    private val pinca by lazy {
+        android.view.ScaleGestureDetector(this, object : android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            override fun onScaleBegin(d: android.view.ScaleGestureDetector): Boolean {
+                pararRolagem()
+                zoomGesto = zoom
+                caixaLista.pivotX = d.focusX + (caixaLista.parent as View).scrollX
+                caixaLista.pivotY = d.focusY
+                return true
+            }
+            override fun onScale(d: android.view.ScaleGestureDetector): Boolean {
+                zoomGesto = (zoomGesto * d.scaleFactor).coerceIn(zoomMin, zoomMax)
+                val f = zoomGesto / zoom
+                caixaLista.scaleX = f; caixaLista.scaleY = f
+                zoomTxt.text = "${(zoomGesto * 100).toInt()}%"
+                return true
+            }
+            override fun onScaleEnd(d: android.view.ScaleGestureDetector) {
+                caixaLista.scaleX = 1f; caixaLista.scaleY = 1f
+                aplicarZoom(zoomGesto, d.focusX)
+            }
+        })
+    }
+    private val toqueDuplo by lazy {
+        android.view.GestureDetector(this, object : android.view.GestureDetector.SimpleOnGestureListener() {
+            override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
+                aplicarZoom(if (zoom < 1.5f) 2f else 1f, e.x)
+                return true
+            }
+        })
+    }
+
+    override fun dispatchTouchEvent(ev: android.view.MotionEvent): Boolean {
+        if (!::caixaLista.isInitialized) return super.dispatchTouchEvent(ev)
+        // só trata gestos na área das páginas
+        val area = caixaLista.parent as View
+        val loc = IntArray(2); area.getLocationOnScreen(loc)
+        val dentro = ev.rawY >= loc[1] && ev.rawY <= loc[1] + area.height
+        if (ev.actionMasked == android.view.MotionEvent.ACTION_DOWN) cancelouFilhos = false
+        if (dentro || pinca.isInProgress) {
+            val local = android.view.MotionEvent.obtain(ev).apply { offsetLocation(-loc[0].toFloat(), -loc[1].toFloat()) }
+            pinca.onTouchEvent(local)
+            if (ev.pointerCount == 1) toqueDuplo.onTouchEvent(local)
+            local.recycle()
+        }
+        if (ev.pointerCount > 1 || pinca.isInProgress) {
+            if (!cancelouFilhos) {
+                val c = android.view.MotionEvent.obtain(ev).apply { action = android.view.MotionEvent.ACTION_CANCEL }
+                super.dispatchTouchEvent(c); c.recycle()
+                cancelouFilhos = true
+            }
+            return true
+        }
+        if (cancelouFilhos) {
+            if (ev.actionMasked == android.view.MotionEvent.ACTION_UP || ev.actionMasked == android.view.MotionEvent.ACTION_CANCEL) cancelouFilhos = false
+            return true
+        }
+        return super.dispatchTouchEvent(ev)
+    }
+
+    /** Muda o zoom mantendo a página e a posição horizontal sob o dedo. */
+    private fun aplicarZoom(novo: Float, focoX: Float) {
+        val z = (Math.round(novo * 20) / 20f).coerceIn(zoomMin, zoomMax)
+        val rolH = caixaLista.parent as HorizontalScrollView
+        val pos = lista.firstVisiblePosition
+        val topo = lista.getChildAt(0)?.top ?: 0
+        val xConteudo = (rolH.scrollX + focoX) / zoom
+        val fator = z / zoom
+        zoom = z
+        atualizarZoomTxt()
+        ajustarLargura()
+        lista.post {
+            lista.setSelectionFromTop(pos, (topo * fator).toInt())
+            rolH.scrollTo((xConteudo * zoom - focoX).toInt().coerceAtLeast(0), 0)
+        }
+    }
     private var rolando = false
     private var velocidade = 3
     private val handler = Handler(Looper.getMainLooper())
@@ -83,7 +162,7 @@ class PdfActivity : Activity() {
             Toast.makeText(this, "Não foi possível abrir este PDF", Toast.LENGTH_LONG).show()
             finish(); return
         }
-        zoomIdx = prefs.getInt("zoom:" + arquivo.absolutePath, 0).coerceIn(0, zooms.size - 1)
+        zoom = prefs.getFloat("zoomf:" + arquivo.absolutePath, 1f).coerceIn(zoomMin, zoomMax)
         velocidade = prefs.getInt("velocidade", 3)
         setContentView(montar())
         lista.post {
@@ -97,7 +176,7 @@ class PdfActivity : Activity() {
         pararRolagem()
         if (::lista.isInitialized) prefs.edit()
             .putInt("pag:" + arquivo.absolutePath, lista.firstVisiblePosition)
-            .putInt("zoom:" + arquivo.absolutePath, zoomIdx)
+            .putFloat("zoomf:" + arquivo.absolutePath, zoom)
             .putInt("velocidade", velocidade).apply()
     }
 
@@ -188,7 +267,7 @@ class PdfActivity : Activity() {
     private fun larguraBase(): Int = (lista.parent.parent as View).width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
 
     private fun ajustarLargura() {
-        val w = (larguraBase() * zooms[zoomIdx]).toInt()
+        val w = (larguraBase() * zoom).toInt()
         caixaLista.layoutParams = caixaLista.layoutParams.apply { width = w }
         lista.layoutParams = (lista.layoutParams as FrameLayout.LayoutParams).apply { width = w }
         caixaLista.requestLayout()
@@ -196,14 +275,10 @@ class PdfActivity : Activity() {
     }
 
     private fun mudarZoom(d: Int) {
-        val pos = lista.firstVisiblePosition
-        zoomIdx = (zoomIdx + d).coerceIn(0, zooms.size - 1)
-        atualizarZoomTxt()
-        ajustarLargura()
-        lista.post { lista.setSelection(pos) }
+        aplicarZoom(zoom + d * 0.25f, larguraBase() / 2f)
     }
 
-    private fun atualizarZoomTxt() { zoomTxt.text = "${(zooms[zoomIdx] * 100).toInt()}%" }
+    private fun atualizarZoomTxt() { zoomTxt.text = "${(zoom * 100).toInt()}%" }
 
     private fun iniciarRolagem() {
         rolando = true
@@ -230,7 +305,7 @@ class PdfActivity : Activity() {
                 scaleType = ImageView.ScaleType.FIT_XY
                 setPadding(0, 0, 0, (6 * dp).toInt())
             }
-            val w = (larguraBase() * zooms[zoomIdx]).toInt().coerceAtLeast(100)
+            val w = (larguraBase() * zoom).toInt().coerceAtLeast(100)
             iv.layoutParams = AbsListView.LayoutParams(w, AbsListView.LayoutParams.WRAP_CONTENT)
             iv.setImageBitmap(renderizar(p, w))
             return iv
@@ -335,6 +410,11 @@ class PdfActivity : Activity() {
             val dir = Biblioteca.pasta(this, tipo, cat).apply { mkdirs() }
             val alvo = Biblioteca.arquivoLivre(dir, nome)
             val ok = try {
+                com.tom_roush.pdfbox.android.PDFBoxResourceLoader.init(applicationContext)
+                Separador.extrair(arquivo, ini, fim, alvo)
+                true
+            } catch (e: Throwable) { alvo.delete(); false } || try {
+                // plano B: copia as páginas como imagem
                 val doc = PdfDocument()
                 for (p in ini..fim) {
                     var wPt = 0; var hPt = 0
