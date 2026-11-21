@@ -2,7 +2,18 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.1.0**
+**Versão atual: 1.2.0**
+
+### Novidades da 1.2.0
+- Nova aba **Pentatônicas** (as abas "Afinador" e "Pentatônicas" ficam no topo):
+  - as 12 tônicas (Dó a Si), **maior** e **menor**;
+  - os **5 shapes** (shape 1 = tônica na 6ª corda) e a opção **Braço todo**;
+  - braço da casa 0 à 17, que rola para os lados e vai sozinho até o shape escolhido;
+  - laranja = tônica, verde-água = notas do shape, cinza = resto da escala;
+  - notas da escala com os graus e a escala relativa (ex.: Lá menor = Dó maior);
+  - botão para **inverter**: Mi bordão em cima ou embaixo.
+- O microfone desliga enquanto estiver na aba Pentatônicas (poupa bateria).
+- O app guarda a última aba e as escolhas das pentatônicas.
 
 ### Novidades da 1.1.0
 - Seletor de **sensibilidade** (Baixa / Média / Alta): toque no botão para trocar.

@@ -78,12 +78,65 @@ class MainActivity : Activity() {
         modo = prefs.getInt("modo", -1)
         sens = prefs.getInt("sens", 1).coerceIn(0, 2)
         limiar = limiaresSens[sens]
-        setContentView(montarTela())
+        aba = prefs.getInt("aba", 0)
+        setContentView(montarAbas(prefs))
         atualizarBotoes()
+    }
+
+    // ---------- Abas ----------
+
+    private var aba = 0
+    private lateinit var telaAfinador: View
+    private lateinit var telaPenta: View
+    private val botoesAba = mutableListOf<TextView>()
+
+    private fun montarAbas(prefs: android.content.SharedPreferences): View {
+        val raiz = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val barra = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), 0)
+        }
+        listOf("Afinador", "Pentatônicas").forEachIndexed { i, nome ->
+            val b = TextView(this).apply {
+                text = nome; gravity = Gravity.CENTER; textSize = 16f
+                typeface = Typeface.DEFAULT_BOLD
+                setOnClickListener { trocarAba(i) }
+            }
+            botoesAba.add(b)
+            barra.addView(b, LinearLayout.LayoutParams(0, (44 * dp).toInt(), 1f).apply { setMargins(m(), 0, m(), 0) })
+        }
+        raiz.addView(barra)
+
+        val conteudo = android.widget.FrameLayout(this)
+        telaAfinador = montarTela()
+        telaPenta = PentatonicasView(this, prefs)
+        conteudo.addView(telaAfinador)
+        conteudo.addView(telaPenta)
+        raiz.addView(conteudo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
+        mostrarAba()
+        return raiz
+    }
+
+    private fun trocarAba(i: Int) {
+        if (i == aba) return
+        aba = i
+        mostrarAba()
+        if (aba == 0) { if (temPermissao()) iniciarAudio() } else pararAudio()
+    }
+
+    private fun mostrarAba() {
+        telaAfinador.visibility = if (aba == 0) View.VISIBLE else View.GONE
+        telaPenta.visibility = if (aba == 1) View.VISIBLE else View.GONE
+        botoesAba.forEachIndexed { i, b ->
+            val ativo = i == aba
+            b.background = fundo(if (ativo) Color.parseColor("#163A27") else cartao, if (ativo) verde else cartao)
+            b.setTextColor(if (ativo) verde else texto)
+        }
     }
 
     override fun onResume() {
         super.onResume()
+        if (aba != 0) return
         if (temPermissao()) iniciarAudio()
         else if (Build.VERSION.SDK_INT >= 23)
             requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 1)
@@ -92,7 +145,7 @@ class MainActivity : Activity() {
     override fun onPause() {
         super.onPause()
         pararAudio()
-        getPreferences(MODE_PRIVATE).edit().putInt("la", la).putInt("modo", modo).putInt("sens", sens).apply()
+        getPreferences(MODE_PRIVATE).edit().putInt("la", la).putInt("modo", modo).putInt("sens", sens).putInt("aba", aba).apply()
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
@@ -110,7 +163,7 @@ class MainActivity : Activity() {
     private fun montarTela(): View {
         val raiz = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding((16 * dp).toInt(), (20 * dp).toInt(), (16 * dp).toInt(), (12 * dp).toInt())
+            setPadding((16 * dp).toInt(), (8 * dp).toInt(), (16 * dp).toInt(), (12 * dp).toInt())
         }
 
         raiz.addView(TextView(this).apply {
