@@ -96,6 +96,8 @@ class SeparacaoFluxo(
 
         caixa.addView(rotulo("Confira os títulos (toque em Música/Aula para trocar, ⤒ junta com a de cima)"))
         val linhas = LinearLayout(act).apply { orientation = LinearLayout.VERTICAL }
+        val atalhos = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; setPadding(0, (6 * dp).toInt(), 0, 0) }
+        caixa.addView(atalhos)
         caixa.addView(linhas)
 
         fun desenhar() {
@@ -146,6 +148,18 @@ class SeparacaoFluxo(
                 })
             }
         }
+        val original = trechos.map { it.copy() }
+        // atalhos: cada página vira uma música / voltar ao que o app encontrou
+        atalhos.addView(pilula("Uma música por página", false) {
+            trechos.clear()
+            for (p in 0 until res.paginas) trechos.add(
+                Separador.Trecho(res.tituloPagina.getOrElse(p) { "Página ${p + 1}" }, p, p, res.musicaPagina.getOrElse(p) { true })
+            )
+            desenhar()
+        })
+        atalhos.addView(pilula("Desfazer", false) {
+            trechos.clear(); trechos.addAll(original.map { it.copy() }); desenhar()
+        })
         desenhar()
 
         AlertDialog.Builder(act).setTitle(nome)

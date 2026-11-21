@@ -3,6 +3,7 @@ package com.tecsattv.afinador
 import com.tom_roush.pdfbox.io.MemoryUsageSetting
 import com.tom_roush.pdfbox.pdmodel.PDDocument
 import com.tom_roush.pdfbox.text.PDFTextStripper
+import com.tom_roush.pdfbox.text.TextPosition
 import java.io.File
 
 /**
@@ -14,7 +15,52 @@ object Separador {
     /** Um trecho do PDF: páginas de ini até fim (contando de 0), título e se parece música (tem cifras). */
     data class Trecho(var titulo: String, var ini: Int, var fim: Int, var musica: Boolean, var incluir: Boolean = true)
 
-    class Resultado(val trechos: MutableList<Trecho>, val paginas: Int, val semTexto: Boolean)
+    class Resultado(
+        val trechos: MutableList<Trecho>,
+        val paginas: Int,
+        val semTexto: Boolean,
+        val tituloPagina: List<String> = emptyList(),   // 1ª linha útil de cada página
+        val musicaPagina: List<Boolean> = emptyList()
+    )
+
+    /** Lê o texto de uma página linha a linha, junto com o tamanho da letra de cada linha. */
+    private class Coletor : PDFTextStripper() {
+        val linhas = mutableListOf<Pair<String, Float>>()
+        private val buf = StringBuilder()
+        private val tams = mutableListOf<Float>()
+
+        init { sortByPosition = true }
+
+        override fun writeString(text: String?, textPositions: MutableList<TextPosition>?) {
+            if (text != null) buf.append(text)
+            textPositions?.forEach { p ->
+                if (!p.unicode.isNullOrBlank()) {
+                    val h = if (p.heightDir > 0f) p.heightDir else p.fontSizeInPt
+                    tams.add(h)
+                }
+            }
+            super.writeString(text, textPositions)
+        }
+        override fun writeWordSeparator() { buf.append(' '); super.writeWordSeparator() }
+        override fun writeLineSeparator() { fechar(); super.writeLineSeparator() }
+
+        private fun fechar() {
+            val t = buf.toString().replace('\u00A0', ' ').trim()
+            if (t.isNotEmpty()) {
+                val ord = tams.sorted()
+                linhas.add(t to (ord.getOrNull(ord.size / 2) ?: 0f))
+            }
+            buf.setLength(0); tams.clear()
+        }
+
+        fun pagina(doc: PDDocument, p: Int): List<Pair<String, Float>> {
+            linhas.clear(); buf.setLength(0); tams.clear()
+            startPage = p; endPage = p
+            try { getText(doc) } catch (e: Exception) {}
+            fechar()
+            return linhas.toList()
+        }
+    }
 
     private val regexAcorde = Regex(
         "^[A-G](#|b|♯|♭)?(m|M|maj|min|dim|aug|sus|add|º|°|ø|\\+|-)?[0-9]{0,2}" +
@@ -46,62 +92,69 @@ object Separador {
     fun analisar(arquivo: File): Resultado {
         PDDocument.load(arquivo, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             val n = doc.numberOfPages
-            val st = PDFTextStripper().apply { sortByPosition = true }
-            val textos = (1..n).map { p ->
-                st.startPage = p; st.endPage = p
-                try { st.getText(doc) } catch (e: Exception) { "" }
-            }
-            val totalLetras = textos.sumOf { t -> t.count { it.isLetter() } }
+            val col = Coletor()
+            val brutas = (1..n).map { p -> col.pagina(doc, p) }
+            val totalLetras = brutas.sumOf { l -> l.sumOf { (t, _) -> t.count { it.isLetter() } } }
             if (totalLetras < 30 * n) return Resultado(mutableListOf(), n, true)
 
-            // linhas por página, sem vazias e sem números de página
-            val linhas = textos.map { t ->
-                t.lines().map { it.replace(' ', ' ').trim() }
-                    .filter { it.isNotEmpty() && !regexSoNumero.matches(it) }
-            }
-            // cabeçalhos/rodapés repetidos (mesma linha em muitas páginas) são ignorados
+            // tira números de página e cabeçalhos/rodapés que se repetem em muitas páginas
+            val semNum = brutas.map { l -> l.filter { (t, _) -> !regexSoNumero.matches(t) } }
             val repetidas = if (n >= 4) {
-                linhas.flatMap { l -> (l.take(3) + l.takeLast(3)).map { normal(it.replace(Regex("\\d"), "")) }.toSet() }
+                semNum.flatMap { l -> (l.take(3) + l.takeLast(3)).map { normal(it.first.replace(Regex("\\d"), "")) }.toSet() }
                     .filter { it.isNotEmpty() }.groupingBy { it }.eachCount()
                     .filter { it.value >= n * 0.4 }.keys
             } else emptySet()
-            val limpas = linhas.map { l -> l.filter { normal(it.replace(Regex("\\d"), "")) !in repetidas } }
+            val pags = semNum.map { l -> l.filter { normal(it.first.replace(Regex("\\d"), "")) !in repetidas } }
+            val limpas = pags.map { l -> l.map { it.first } }
 
-            fun titulo(l: List<String>): String? =
-                l.take(4).firstOrNull { !linhaDeAcordes(it) && it.any { c -> c.isLetter() } && it.length in 2..70 }
+            // tamanho normal da letra (corpo do texto) no documento todo
+            val tamanhos = pags.flatten().filter { (t, h) -> h > 0f && t.any { it.isLetter() } }.map { it.second }.sorted()
+            val corpo = tamanhos.getOrNull(tamanhos.size / 2) ?: 0f
 
-            fun comeca(i: Int, tituloAtual: String?): Boolean {
-                if (i == 0) return true
+            fun ehTitulo(t: String) = !linhaDeAcordes(t) && t.any { c -> c.isLetter() } && t.length in 2..80
+
+            // título = linha em letra maior que o corpo, no topo da página
+            fun tituloGrande(l: List<Pair<String, Float>>): String? =
+                if (corpo <= 0f) null
+                else l.take(6).firstOrNull { (t, h) -> h >= corpo * 1.18f && ehTitulo(t) }?.first
+
+            fun primeiraLinha(l: List<String>): String? = l.take(4).firstOrNull { ehTitulo(it) }
+
+            val comTitulo = pags.count { tituloGrande(it) != null }
+            val modoTamanho = comTitulo >= maxOf(2, (n * 0.12).toInt())
+
+            fun comeca(i: Int, tituloAtual: String?): String? {
                 val l = limpas[i]
-                if (l.isEmpty()) return false
-                val t = titulo(l) ?: return false
-                if (regexCont.containsMatchIn(t)) return false
-                if (tituloAtual != null && normal(t) == normal(tituloAtual)) return false
-                var pontos = 0
-                if (l.take(8).any { regexTom.containsMatchIn(it) }) pontos += 3
-                val primeira = l.first()
-                if (!linhaDeAcordes(primeira) && primeira.length <= 50) pontos += 1
-                val segunda = l.getOrNull(1)
-                if (segunda != null && !linhaDeAcordes(segunda) && segunda.length <= 50) pontos += 1
-                if (pontos >= 3) return true
-                // sem "Tom:": título e artista capitalizados no topo da página
-                return pontos == 2 && tituloCapitalizado(primeira) && segunda != null && tituloCapitalizado(segunda)
+                if (l.isEmpty()) return null
+                val tom = l.take(8).any { regexTom.containsMatchIn(it) }
+                val t: String? = if (modoTamanho) tituloGrande(pags[i]) ?: (if (tom) primeiraLinha(l) else null)
+                else {
+                    val tt = primeiraLinha(l) ?: return null
+                    var pontos = 0
+                    if (tom) pontos += 3
+                    val primeira = l.first()
+                    if (!linhaDeAcordes(primeira) && primeira.length <= 50) pontos += 1
+                    val segunda = l.getOrNull(1)
+                    if (segunda != null && !linhaDeAcordes(segunda) && segunda.length <= 50) pontos += 1
+                    val ok = pontos >= 3 || (pontos == 2 && tituloCapitalizado(primeira) && segunda != null && tituloCapitalizado(segunda))
+                    if (ok) tt else null
+                }
+                if (t == null || regexCont.containsMatchIn(t)) return null
+                if (tituloAtual != null && normal(t) == normal(tituloAtual)) return null
+                return t
             }
 
             val trechos = mutableListOf<Trecho>()
             for (i in 0 until n) {
                 val atual = trechos.lastOrNull()
-                if (atual == null || comeca(i, atual.titulo)) {
-                    val t = titulo(limpas[i]) ?: "Página ${i + 1}"
-                    trechos.add(Trecho(limparTitulo(t), i, i, false))
-                } else atual.fim = i
+                val t = if (atual == null) (comeca(i, null) ?: primeiraLinha(limpas[i]) ?: "Página 1") else comeca(i, atual.titulo)
+                if (atual == null || t != null) trechos.add(Trecho(limparTitulo(t!!), i, i, false))
+                else atual.fim = i
             }
-            // música = tem pelo menos 2 linhas de acordes
-            for (t in trechos) {
-                val acordes = (t.ini..t.fim).sumOf { p -> limpas[p].count { linhaDeAcordes(it) } }
-                t.musica = acordes >= 2
-            }
-            return Resultado(trechos, n, false)
+            val musicaPag = limpas.map { l -> l.count { linhaDeAcordes(it) } >= 2 }
+            for (t in trechos) t.musica = (t.ini..t.fim).any { musicaPag[it] }
+            val titPag = limpas.mapIndexed { i, l -> limparTitulo(tituloGrande(pags[i]) ?: primeiraLinha(l) ?: "Página ${i + 1}") }
+            return Resultado(trechos, n, false, titPag, musicaPag)
         }
     }
 

@@ -2,7 +2,14 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.5.1**
+**Versão atual: 1.5.2**
+
+### Novidades da 1.5.2
+- Separação de songbooks muito melhor: o app agora acha o **título de cada música pelo tamanho da letra**
+  (o título costuma estar em letra maior que a cifra), mesmo sem "Tom:" e sem o nome do artista em cada página.
+  Cabeçalhos repetidos (ex.: nome da dupla em todas as páginas) são ignorados.
+- Na lista de conferência: botão **"Uma música por página"** (cada página vira uma música, com o título lido da página)
+  e **"Desfazer"** para voltar ao que o app encontrou.
 
 ### Novidades da 1.5.1
 - Textos e botões alinhados em todas as telas: abas com a mesma altura (o nome "Pentatônicas" cabe inteiro),
