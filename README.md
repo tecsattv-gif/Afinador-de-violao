@@ -2,7 +2,14 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.2.0**
+**Versão atual: 1.3.0**
+
+### Novidades da 1.3.0
+- Pentatônicas com **som**: toque numa bolinha para ouvir a nota (som de corda dedilhada,
+  gerado no próprio app, na altura certa da corda e casa). A bolinha acende ao tocar.
+- Botão **▶ Tocar shape**: toca as notas do shape subindo e descendo, acendendo cada bolinha.
+  No "Braço todo", toca duas oitavas a partir da tônica mais grave.
+- Botão do bordão com texto mais curto (não fica mais cortado).
 
 ### Novidades da 1.2.0
 - Nova aba **Pentatônicas** (as abas "Afinador" e "Pentatônicas" ficam no topo):

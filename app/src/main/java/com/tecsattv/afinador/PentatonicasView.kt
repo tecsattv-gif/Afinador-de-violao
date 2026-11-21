@@ -102,12 +102,25 @@ class PentatonicasView(context: Context, private val prefs: SharedPreferences) :
             background = fundo(cartao, cartao)
             setOnClickListener { bordaoEmCima = !bordaoEmCima; atualizar(rolar = false) }
         }
-        col.addView(btBordao, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, (48 * dp).toInt()).apply {
-            setMargins(m(), (8 * dp).toInt(), m(), m())
+        // botões: tocar shape + inverter bordão
+        val lb = linha()
+        val btTocar = TextView(context).apply {
+            text = "▶  Tocar shape"; gravity = Gravity.CENTER; textSize = 15f
+            setTextColor(texto); background = fundo(cartao, cartao)
+            minHeight = (48 * dp).toInt()
+            setOnClickListener { tocarShape() }
+        }
+        btBordao.minHeight = (48 * dp).toInt()
+        lb.addView(btTocar, peso())
+        lb.addView(btBordao, peso())
+        col.addView(lb, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply {
+            topMargin = (8 * dp).toInt()
         })
 
+        braco.aoTocar = { n -> Som.tocar(n.midi) }
+
         col.addView(TextView(context).apply {
-            text = "Laranja = tônica · verde-água = notas do shape · cinza = resto da escala\nArraste o braço para os lados para ver todas as casas"
+            text = "Toque numa bolinha para ouvir a nota\nLaranja = tônica · verde-água = shape · cinza = resto da escala\nArraste o braço para os lados para ver todas as casas"
             setTextColor(fraco); textSize = 12f; gravity = Gravity.CENTER
             setPadding(0, (6 * dp).toInt(), 0, 0)
         })
@@ -137,6 +150,23 @@ class PentatonicasView(context: Context, private val prefs: SharedPreferences) :
 
     private fun nomeNota(pc: Int) = letras[pc]
 
+    /** Toca as notas do shape subindo e depois descendo (no braço todo: 1ª oitava a partir da tônica mais grave). */
+    private fun tocarShape() {
+        val ativas = braco.notas.filter { it.ativa }
+        val seq: List<FretboardView.Nota> = if (shape != 0) {
+            ativas.sortedWith(compareBy({ it.midi }, { it.corda }))
+                .distinctBy { it.midi }
+        } else {
+            val porMidi = ativas.sortedWith(compareBy({ it.midi }, { -it.corda })).distinctBy { it.midi }
+            val ini = porMidi.indexOfFirst { it.tonica }.coerceAtLeast(0)
+            porMidi.drop(ini).take(11)
+        }
+        if (seq.isEmpty()) return
+        val idaVolta = seq + seq.dropLast(1).reversed()
+        Som.tocarSequencia(idaVolta.map { it.midi })
+        idaVolta.forEachIndexed { i, n -> braco.postDelayed({ braco.acender(n) }, i * 320L) }
+    }
+
     private fun atualizar(rolar: Boolean = true) {
         prefs.edit().putInt("p_tonica", tonica).putBoolean("p_menor", menor)
             .putInt("p_shape", shape).putBoolean("p_bordao", bordaoEmCima).apply()
@@ -148,7 +178,7 @@ class PentatonicasView(context: Context, private val prefs: SharedPreferences) :
             val pc = (cordaSolta[c] + casa) % 12
             if (pc !in escala) continue
             val ativa = shape == 0 || (c to casa) in noShape
-            lista.add(FretboardView.Nota(c, casa, nomeNota(pc), pc == tonica, ativa))
+            lista.add(FretboardView.Nota(c, casa, nomeNota(pc), pc == tonica, ativa, cordaSolta[c] + casa))
         }
         braco.bordaoEmCima = bordaoEmCima
         braco.notas = lista
@@ -160,7 +190,7 @@ class PentatonicasView(context: Context, private val prefs: SharedPreferences) :
         val notasTxt = intervalos().mapIndexed { i, iv -> "${letras[(tonica + iv) % 12]} (${graus[i]})" }.joinToString("  ")
         info.text = "$notasTxt\nRelativa: $relativa pentatônica (mesmas notas)"
 
-        btBordao.text = if (bordaoEmCima) "Mi bordão em cima  ⇅  toque para inverter" else "Mi bordão embaixo  ⇅  toque para inverter"
+        btBordao.text = if (bordaoEmCima) "⇅  Mi bordão em cima" else "⇅  Mi bordão embaixo"
 
         botoesTonica.forEachIndexed { i, b -> marcar(b, i == tonica) }
         marcar(botoesTipo[0], !menor); marcar(botoesTipo[1], menor)

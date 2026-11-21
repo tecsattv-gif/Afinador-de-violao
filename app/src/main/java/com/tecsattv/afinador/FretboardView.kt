@@ -5,7 +5,9 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.view.MotionEvent
 import android.view.View
+import kotlin.math.hypot
 
 /**
  * Braço do violão (casas 0 a [casas]) com as notas marcadas.
@@ -13,7 +15,38 @@ import android.view.View
  */
 class FretboardView(context: Context) : View(context) {
 
-    data class Nota(val corda: Int, val casa: Int, val nome: String, val tonica: Boolean, val ativa: Boolean)
+    data class Nota(val corda: Int, val casa: Int, val nome: String, val tonica: Boolean, val ativa: Boolean, val midi: Int)
+
+    /** Chamado quando o usuário toca numa bolinha. */
+    var aoTocar: ((Nota) -> Unit)? = null
+    private var acesa: Nota? = null
+    private val apagar = Runnable { acesa = null; invalidate() }
+
+    /** Acende a bolinha por um instante (ao tocar o som). */
+    fun acender(n: Nota) {
+        acesa = n
+        removeCallbacks(apagar)
+        invalidate()
+        postDelayed(apagar, 350)
+    }
+
+    override fun onTouchEvent(e: MotionEvent): Boolean {
+        when (e.actionMasked) {
+            MotionEvent.ACTION_DOWN -> return true
+            MotionEvent.ACTION_UP -> {
+                val alvo = notas.minByOrNull { hypot(xCasa(it.casa) - e.x, yCorda(it.corda) - e.y) }
+                if (alvo != null && hypot(xCasa(alvo.casa) - e.x, yCorda(alvo.corda) - e.y) < 22 * dp) {
+                    acender(alvo)
+                    aoTocar?.invoke(alvo)
+                    performClick()
+                }
+                return true
+            }
+        }
+        return super.onTouchEvent(e)
+    }
+
+    override fun performClick(): Boolean = super.performClick()
 
     var notas: List<Nota> = emptyList()
         set(v) { field = v; invalidate() }
@@ -51,7 +84,7 @@ class FretboardView(context: Context) : View(context) {
     fun xCasa(casa: Int): Float =
         if (casa == 0) margemEsq / 2 + 6 * dp else margemEsq + (casa - 0.5f) * larguraCasa
 
-    private fun yCorda(corda: Int): Float {
+    fun yCorda(corda: Int): Float {
         val linhaVisual = if (bordaoEmCima) corda else 5 - corda
         return topo + linhaVisual * espCorda
     }
@@ -102,6 +135,12 @@ class FretboardView(context: Context) : View(context) {
                 !n.ativa -> corInativa
                 n.tonica -> corTonica
                 else -> corNota
+            }
+            val viva = acesa?.let { it.corda == n.corda && it.casa == n.casa } == true
+            if (viva) {
+                circ.color = Color.WHITE
+                canvas.drawCircle(x, y, 17 * dp, circ)
+                circ.color = if (n.tonica) corTonica else corNota
             }
             canvas.drawCircle(x, y, 13 * dp, circ)
             txt.typeface = Typeface.DEFAULT_BOLD
