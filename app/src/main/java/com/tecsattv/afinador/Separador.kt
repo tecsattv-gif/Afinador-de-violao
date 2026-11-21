@@ -11,7 +11,7 @@ import java.io.File
  */
 object Separador {
 
-    /** Um trecho do PDF: páginas [ini..fim] (0-based), título e se parece música (tem cifras). */
+    /** Um trecho do PDF: páginas de ini até fim (contando de 0), título e se parece música (tem cifras). */
     data class Trecho(var titulo: String, var ini: Int, var fim: Int, var musica: Boolean, var incluir: Boolean = true)
 
     class Resultado(val trechos: MutableList<Trecho>, val paginas: Int, val semTexto: Boolean)
@@ -109,7 +109,7 @@ object Separador {
         t.replace(Regex("^\\d+\\s*[-.)]\\s*"), "")       // "12 - Música" -> "Música"
             .replace(Regex("\\s{2,}"), " ").trim().take(80)
 
-    /** Cria um PDF novo com as páginas [ini..fim] (0-based), mantendo texto e qualidade originais. */
+    /** Cria um PDF novo com as páginas de ini até fim (contando de 0), mantendo texto e qualidade originais. */
     fun extrair(origem: File, ini: Int, fim: Int, destino: File) {
         PDDocument.load(origem, MemoryUsageSetting.setupTempFileOnly()).use { doc ->
             PDDocument().use { novo ->
