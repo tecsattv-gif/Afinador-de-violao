@@ -12,7 +12,7 @@ class PitchDetector(private val sampleRate: Int, bufferSize: Int) {
     private val maxTau = minOf(half, sampleRate / 60)      // até ~60 Hz
     private val minTau = sampleRate / 1100                 // até ~1100 Hz
     private val diff = FloatArray(maxTau)
-    private val threshold = 0.15f
+    private val threshold = 0.12f
 
     fun rms(buf: FloatArray): Float {
         var s = 0f

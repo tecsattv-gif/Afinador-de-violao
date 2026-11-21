@@ -58,7 +58,7 @@ class TunerView(context: Context) : View(context) {
 
         // suavização do ponteiro
         val goal = if (hasSignal) targetCents.coerceIn(-50f, 50f) else 0f
-        shownCents += (goal - shownCents) * 0.25f
+        shownCents += (goal - shownCents) * 0.15f
         if (abs(goal - shownCents) > 0.1f) postInvalidateOnAnimation()
 
         // arco de fundo (180° a 360°, de -60° a +60° em torno do topo)

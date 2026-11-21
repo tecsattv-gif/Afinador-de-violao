@@ -2,7 +2,15 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.0.0**
+**Versão atual: 1.1.0**
+
+### Novidades da 1.1.0
+- Seletor de **sensibilidade** (Baixa / Média / Alta): toque no botão para trocar.
+  Baixa ignora ruído de fundo e reage só à corda tocada; Alta pega sons fracos.
+- Leitura mais estável: saltos súbitos (ruído, harmônicos, oitava errada) são ignorados
+  até se repetirem 3 vezes seguidas; mediana de 7 leituras e média móvel dos cents.
+- Ponteiro mais suave.
+- "Afinado!" só aparece depois de ~0,3 s dentro de ±5 cents ("Quase lá…" antes disso).
 
 ## Funções
 
@@ -16,7 +24,8 @@ App Android para afinar o violão pelo microfone do celular, na afinação padr�
 - Dica na tela: "Grave · aperte" ou "Agudo · afrouxe".
 - Frequência em Hz.
 - Calibração do Lá de 430 a 450 Hz (padrão 440 Hz).
-- O app guarda o último modo e a calibração.
+- Sensibilidade do microfone: Baixa, Média (padrão) ou Alta.
+- O app guarda o último modo, a calibração e a sensibilidade.
 - A tela fica ligada enquanto o afinador está aberto.
 - Funciona offline, em retrato ou paisagem, no Android 5.0 ou mais novo.
 
@@ -38,7 +47,7 @@ atualizações instalam por cima sem perder as configurações.
 
 - Kotlin nativo, sem bibliotecas externas.
 - Detecção de frequência pelo algoritmo YIN (44,1 kHz, janela de 4096 amostras),
-  com mediana das últimas 5 leituras para estabilizar o ponteiro.
+  com filtro de saltos, mediana das últimas 7 leituras e média móvel para estabilizar o ponteiro.
 
 ## Créditos
 
