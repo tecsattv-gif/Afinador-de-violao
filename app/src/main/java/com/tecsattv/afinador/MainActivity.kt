@@ -2,7 +2,10 @@ package com.tecsattv.afinador
 
 import android.Manifest
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.widget.Toast
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -88,17 +91,21 @@ class MainActivity : Activity() {
     private var aba = 0
     private lateinit var telaAfinador: View
     private lateinit var telaPenta: View
+    private lateinit var telaAulas: BibliotecaView
+    private lateinit var telaCifras: BibliotecaView
+    private var pedidoPdf: BibliotecaView? = null
     private val botoesAba = mutableListOf<TextView>()
 
     private fun montarAbas(prefs: android.content.SharedPreferences): View {
         val raiz = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val barra = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            setPadding((12 * dp).toInt(), (10 * dp).toInt(), (12 * dp).toInt(), 0)
+            setPadding((8 * dp).toInt(), (10 * dp).toInt(), (8 * dp).toInt(), 0)
         }
-        listOf("Afinador", "Pentatônicas").forEachIndexed { i, nome ->
+        listOf("Afinador", "Pentatônicas", "Aulas", "Cifras").forEachIndexed { i, nome ->
             val b = TextView(this).apply {
-                text = nome; gravity = Gravity.CENTER; textSize = 16f
+                text = nome; gravity = Gravity.CENTER; textSize = 13f
+                maxLines = 1
                 typeface = Typeface.DEFAULT_BOLD
                 setOnClickListener { trocarAba(i) }
             }
@@ -112,10 +119,81 @@ class MainActivity : Activity() {
         telaPenta = PentatonicasView(this, prefs)
         conteudo.addView(telaAfinador)
         conteudo.addView(telaPenta)
+        telaAulas = BibliotecaView(this, "aulas")
+        telaCifras = BibliotecaView(this, "cifras")
+        conteudo.addView(telaAulas)
+        conteudo.addView(telaCifras)
         raiz.addView(conteudo, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f))
         mostrarAba()
         return raiz
     }
+
+    // ---------- Biblioteca: escolher arquivos ----------
+
+    fun recarregarBibliotecas() {
+        telaAulas.recarregar()
+        telaCifras.recarregar()
+    }
+
+    fun pedirPdfs(origem: BibliotecaView) {
+        pedidoPdf = origem
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/pdf"
+            putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true)
+        }
+        try { startActivityForResult(i, 10) } catch (e: Exception) { aviso("Nenhum app de arquivos encontrado") }
+    }
+
+    fun pedirExportarZip() {
+        val data = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US).format(java.util.Date())
+        val i = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "application/zip"
+            putExtra(Intent.EXTRA_TITLE, "Afinador-biblioteca-$data.zip")
+        }
+        try { startActivityForResult(i, 11) } catch (e: Exception) { aviso("Nenhum app de arquivos encontrado") }
+    }
+
+    fun pedirImportarZip() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "*/*"
+            putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/zip", "application/x-zip-compressed", "application/octet-stream"))
+        }
+        try { startActivityForResult(i, 12) } catch (e: Exception) { aviso("Nenhum app de arquivos encontrado") }
+    }
+
+    @Deprecated("API antiga, mas funciona em todas as versões")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode != RESULT_OK || data == null) return
+        when (requestCode) {
+            10 -> {
+                val uris = mutableListOf<Uri>()
+                data.clipData?.let { c -> for (k in 0 until c.itemCount) uris.add(c.getItemAt(k).uri) }
+                if (uris.isEmpty()) data.data?.let { uris.add(it) }
+                (pedidoPdf ?: telaCifras).receberPdfs(uris)
+            }
+            11 -> data.data?.let { u ->
+                Thread {
+                    val n = try { Biblioteca.exportarZip(this, u) } catch (e: Exception) { -1 }
+                    runOnUiThread { aviso(if (n >= 0) "Backup salvo: $n PDF(s)" else "Falha ao salvar o backup") }
+                }.start()
+            }
+            12 -> data.data?.let { u ->
+                Thread {
+                    val n = try { Biblioteca.importarZip(this, u) } catch (e: Exception) { -1 }
+                    runOnUiThread {
+                        aviso(if (n >= 0) "Restaurado: $n PDF(s) novo(s)" else "Arquivo de backup inválido")
+                        recarregarBibliotecas()
+                    }
+                }.start()
+            }
+        }
+    }
+
+    private fun aviso(t: String) = Toast.makeText(this, t, Toast.LENGTH_LONG).show()
 
     private fun trocarAba(i: Int) {
         if (i == aba) return
@@ -127,6 +205,8 @@ class MainActivity : Activity() {
     private fun mostrarAba() {
         telaAfinador.visibility = if (aba == 0) View.VISIBLE else View.GONE
         telaPenta.visibility = if (aba == 1) View.VISIBLE else View.GONE
+        telaAulas.visibility = if (aba == 2) View.VISIBLE else View.GONE
+        telaCifras.visibility = if (aba == 3) View.VISIBLE else View.GONE
         botoesAba.forEachIndexed { i, b ->
             val ativo = i == aba
             b.background = fundo(if (ativo) Color.parseColor("#163A27") else cartao, if (ativo) verde else cartao)
@@ -136,6 +216,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        if (::telaAulas.isInitialized) recarregarBibliotecas()
         if (aba != 0) return
         if (temPermissao()) iniciarAudio()
         else if (Build.VERSION.SDK_INT >= 23)

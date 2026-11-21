@@ -2,7 +2,23 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.3.0**
+**Versão atual: 1.4.0**
+
+### Novidades da 1.4.0
+- Novas abas **Aulas** e **Cifras** (biblioteca de PDFs guardada só no celular):
+  - **Aulas** separadas por **categorias** e **Cifras** separadas por **gêneros**, criados por você
+    (toque longo numa categoria/gênero para renomear ou apagar);
+  - **＋ Importar PDF** (vários de uma vez) com opção de **separar automaticamente pelo nome**:
+    nomes com "aula", "teoria", "tutorial", "escala", "harmonia", "acorde", "exercício"… vão para Aulas,
+    o resto vai para Cifras;
+  - busca pelo nome; toque longo num PDF para renomear, **mover** (inclusive entre Aulas e Cifras) ou apagar;
+  - **Backup**: exporta toda a biblioteca num `.zip` e restaura sem apagar o que já existe.
+- **Leitor de PDF** dentro do app:
+  - zoom de 100% a 300%, **rolagem automática** com velocidade ajustável (para tocar sem as mãos);
+  - guarda a última página e o zoom de cada arquivo; a tela fica ligada;
+  - **✂ Separar**: escolha "da página X até Y", se é música (cifra) ou aula/tutorial e o gênero/categoria
+    — o app cria um PDF novo só com essas páginas no lugar certo (ideal para songbooks que misturam tudo).
+- Os PDFs não vão para o GitHub: ficam só no celular.
 
 ### Novidades da 1.3.0
 - Pentatônicas com **som**: toque numa bolinha para ouvir a nota (som de corda dedilhada,
