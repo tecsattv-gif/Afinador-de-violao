@@ -109,7 +109,7 @@ class SeparacaoFluxo(
                     setPadding((8 * dp).toInt(), (6 * dp).toInt(), (8 * dp).toInt(), (6 * dp).toInt())
                     background = GradientDrawable().apply { cornerRadius = 10 * dp; setColor(cartao) }
                 }
-                val topo = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+                val topo = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL }
                 topo.addView(CheckBox(act).apply {
                     isChecked = t.incluir
                     setOnCheckedChangeListener { _, c -> t.incluir = c }
@@ -125,7 +125,7 @@ class SeparacaoFluxo(
                 }, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
                 linha.addView(topo)
 
-                val baixo = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+                val baixo = LinearLayout(act).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL }
                 baixo.addView(TextView(act).apply {
                     text = if (t.ini == t.fim) "pág. ${t.ini + 1}" else "pág. ${t.ini + 1}–${t.fim + 1}"
                     setTextColor(fraco); textSize = 13f
@@ -193,7 +193,7 @@ class SeparacaoFluxo(
 
     private fun esperando(msg: String): AlertDialog {
         val caixa = LinearLayout(act).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL
             setPadding((24 * dp).toInt(), (20 * dp).toInt(), (24 * dp).toInt(), (20 * dp).toInt())
             addView(ProgressBar(act))
         }

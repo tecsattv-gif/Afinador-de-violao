@@ -100,18 +100,21 @@ class MainActivity : Activity() {
     private fun montarAbas(prefs: android.content.SharedPreferences): View {
         val raiz = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val barra = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+            orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false
             setPadding((8 * dp).toInt(), (10 * dp).toInt(), (8 * dp).toInt(), 0)
         }
         listOf("Afinador", "Pentatônicas", "Aulas", "Cifras").forEachIndexed { i, nome ->
             val b = TextView(this).apply {
                 text = nome; gravity = Gravity.CENTER; textSize = 13f
                 maxLines = 1
+                setPadding((2 * dp).toInt(), 0, (2 * dp).toInt(), 0)
+                if (Build.VERSION.SDK_INT >= 26)
+                    setAutoSizeTextTypeUniformWithConfiguration(9, 15, 1, android.util.TypedValue.COMPLEX_UNIT_SP)
                 typeface = Typeface.DEFAULT_BOLD
                 setOnClickListener { trocarAba(i) }
             }
             botoesAba.add(b)
-            barra.addView(b, LinearLayout.LayoutParams(0, (44 * dp).toInt(), 1f).apply { setMargins(m(), 0, m(), 0) })
+            barra.addView(b, LinearLayout.LayoutParams(0, (44 * dp).toInt(), if (nome == "Pentatônicas") 1.35f else 1f).apply { setMargins(m(), 0, m(), 0) })
         }
         raiz.addView(barra)
 
@@ -270,7 +273,7 @@ class MainActivity : Activity() {
 
         // linha 1: Auto / Cromático
         val linha1 = linha()
-        linha1.addView(botao("Auto\ncorda mais próxima", -1), peso())
+        linha1.addView(botao("Auto\nacha a corda", -1), peso())
         linha1.addView(botao("Cromático\nqualquer nota", -2), peso())
         raiz.addView(linha1)
 
@@ -311,8 +314,8 @@ class MainActivity : Activity() {
     }
 
     private fun m() = (3 * dp).toInt()
-    private fun linha() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER }
-    private fun peso() = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f).apply { setMargins(m(), m(), m(), m()) }
+    private fun linha() = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER }
+    private fun peso() = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f).apply { setMargins(m(), m(), m(), m()) }
 
     private fun fundo(cor: Int, borda: Int) = GradientDrawable().apply {
         cornerRadius = 12 * dp; setColor(cor); setStroke((1.5f * dp).toInt(), borda)

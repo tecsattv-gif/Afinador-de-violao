@@ -206,8 +206,8 @@ class PentatonicasView(context: Context, private val prefs: SharedPreferences) :
     // ---------- componentes ----------
 
     private fun m() = (3 * dp).toInt()
-    private fun linha() = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
-    private fun peso(p: Float = 1f) = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, p).apply { setMargins(m(), m(), m(), m()) }
+    private fun linha() = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
+    private fun peso(p: Float = 1f) = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, p).apply { setMargins(m(), m(), m(), m()) }
 
     private fun rotulo(col: LinearLayout, t: String) {
         col.addView(TextView(context).apply {

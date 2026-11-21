@@ -52,9 +52,13 @@ class TunerView(context: Context) : View(context) {
         super.onDraw(canvas)
         val w = width.toFloat()
         val h = height.toFloat()
-        val r = min(w * 0.42f, h * 0.62f)
+        // layout de cima para baixo: nota grande, arco com ponteiro, textos embaixo
+        val baixo = 66 * dp                       // espaço para corda/cents e Hz
+        val notaTam = min(min(w, h) * 0.20f, 84 * dp).coerceAtLeast(36 * dp)
+        val r = min(w * 0.42f, h - baixo - notaTam - 24 * dp).coerceAtLeast(40 * dp)
         val cx = w / 2f
-        val cy = h * 0.70f
+        val cy = h - baixo
+        val notaY = cy - r - 16 * dp             // linha de base da nota, acima do arco
 
         // suavização do ponteiro
         val goal = if (hasSignal) targetCents.coerceIn(-50f, 50f) else 0f
@@ -97,14 +101,15 @@ class TunerView(context: Context) : View(context) {
         txt.textSize = 13 * dp
         txt.color = textoFraco
         txt.typeface = Typeface.DEFAULT
-        canvas.drawText("♭", cx - r * 0.95f, cy - r * 0.35f, txt)
-        canvas.drawText("♯", cx + r * 0.95f, cy - r * 0.35f, txt)
+        txt.textSize = 18 * dp
+        canvas.drawText("♭", cx - r * 0.92f, cy - r * 0.62f, txt)
+        canvas.drawText("♯", cx + r * 0.92f, cy - r * 0.62f, txt)
 
         // nota grande
         txt.typeface = Typeface.DEFAULT_BOLD
         txt.color = if (hasSignal) col else texto
-        txt.textSize = min(r * 0.42f, 90 * dp)
-        canvas.drawText(noteName, cx, cy - r * 0.30f, txt)
+        txt.textSize = notaTam
+        canvas.drawText(noteName, cx, notaY, txt)
 
         // corda / cents
         txt.typeface = Typeface.DEFAULT

@@ -36,7 +36,7 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
     private val prefs = act.getPreferences(android.content.Context.MODE_PRIVATE)
     private var categoria = prefs.getString("b_${tipo}_cat", "Geral") ?: "Geral"
 
-    private val linhaCats = LinearLayout(act).apply { orientation = HORIZONTAL }
+    private val linhaCats = LinearLayout(act).apply { orientation = HORIZONTAL; isBaselineAligned = false }
     private val busca = EditText(act)
     private val lista = ListView(act)
     private val vazio = TextView(act)
@@ -72,7 +72,7 @@ class BibliotecaView(private val act: MainActivity, val tipo: String) : LinearLa
             setMargins(m(), (8 * dp).toInt(), m(), m())
         })
 
-        val botoes = LinearLayout(act).apply { orientation = HORIZONTAL }
+        val botoes = LinearLayout(act).apply { orientation = HORIZONTAL; isBaselineAligned = false }
         botoes.addView(botao("＋  Importar PDF") { act.pedirPdfs(this) }, peso(1.6f))
         botoes.addView(botao("Backup") { dialogoBackup() }, peso(1f))
         addView(botoes)

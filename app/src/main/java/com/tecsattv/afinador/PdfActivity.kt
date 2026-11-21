@@ -193,7 +193,7 @@ class PdfActivity : Activity() {
 
         // barra de cima
         val topo = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL
             setPadding((6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt())
         }
         topo.addView(botao("←") { finish() }, LinearLayout.LayoutParams((48 * dp).toInt(), (44 * dp).toInt()))
@@ -233,7 +233,7 @@ class PdfActivity : Activity() {
 
         // barra de baixo: zoom + rolagem automática
         val baixo = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL
             setPadding((6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt(), (6 * dp).toInt())
         }
         baixo.addView(botao("−") { mudarZoom(-1) }, LinearLayout.LayoutParams((44 * dp).toInt(), (44 * dp).toInt()))
@@ -346,7 +346,7 @@ class PdfActivity : Activity() {
         fun numero(v: Int) = EditText(this).apply { setText("$v"); inputType = InputType.TYPE_CLASS_NUMBER }
 
         caixa.addView(rotulo("Páginas (este PDF tem $paginas)"))
-        val linhaPag = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        val linhaPag = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false; gravity = Gravity.CENTER_VERTICAL }
         val de = numero(atual); val ate = numero(atual)
         linhaPag.addView(TextView(this).apply { text = "De "; setTextColor(texto) })
         linhaPag.addView(de, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
