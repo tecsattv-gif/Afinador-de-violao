@@ -96,7 +96,56 @@ object Separador {
             val brutas = (1..n).map { p -> col.pagina(doc, p) }
             val totalLetras = brutas.sumOf { l -> l.sumOf { (t, _) -> t.count { it.isLetter() } } }
             if (totalLetras < 30 * n) return Resultado(mutableListOf(), n, true)
+            return montar(brutas, n)
+        }
+    }
 
+    /**
+     * PDF de imagem (escaneado): desenha cada página e reconhece o texto com OCR (ML Kit, offline).
+     * O tamanho da letra vem da altura de cada linha reconhecida.
+     */
+    fun analisarOcr(ctx: android.content.Context, arquivo: File, progresso: (Int, Int) -> Unit): Resultado {
+        val rec = com.google.mlkit.vision.text.TextRecognition.getClient(
+            com.google.mlkit.vision.text.latin.TextRecognizerOptions.DEFAULT_OPTIONS
+        )
+        try {
+            android.os.ParcelFileDescriptor.open(arquivo, android.os.ParcelFileDescriptor.MODE_READ_ONLY).use { pfd ->
+                android.graphics.pdf.PdfRenderer(pfd).use { r ->
+                    val n = r.pageCount
+                    val brutas = (0 until n).map { i ->
+                        progresso(i + 1, n)
+                        val bmp = r.openPage(i).use { pg ->
+                            val w = 1400
+                            val h = (w.toLong() * pg.height / pg.width).toInt().coerceIn(200, 4000)
+                            android.graphics.Bitmap.createBitmap(w, h, android.graphics.Bitmap.Config.ARGB_8888).also {
+                                it.eraseColor(android.graphics.Color.WHITE)
+                                pg.render(it, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            }
+                        }
+                        val linhas = try {
+                            val res = com.google.android.gms.tasks.Tasks.await(
+                                rec.process(com.google.mlkit.vision.common.InputImage.fromBitmap(bmp, 0))
+                            )
+                            res.textBlocks.flatMap { it.lines }
+                                .filter { it.boundingBox != null }
+                                .sortedWith(compareBy({ it.boundingBox!!.top / 12 }, { it.boundingBox!!.left }))
+                                .map { it.text.trim() to it.boundingBox!!.height().toFloat() }
+                        } catch (e: Exception) { emptyList() }
+                        bmp.recycle()
+                        linhas
+                    }
+                    val totalLetras = brutas.sumOf { l -> l.sumOf { (t, _) -> t.count { it.isLetter() } } }
+                    if (totalLetras < 20 * n) return Resultado(mutableListOf(), n, true)
+                    return montar(brutas, n)
+                }
+            }
+        } finally {
+            rec.close()
+        }
+    }
+
+    private fun montar(brutas: List<List<Pair<String, Float>>>, n: Int): Resultado {
+        run {
             // tira números de página e cabeçalhos/rodapés que se repetem em muitas páginas
             val semNum = brutas.map { l -> l.filter { (t, _) -> !regexSoNumero.matches(t) } }
             val repetidas = if (n >= 4) {

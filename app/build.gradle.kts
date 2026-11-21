@@ -11,8 +11,8 @@ android {
         applicationId = "com.tecsattv.afinador"
         minSdk = 21
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.5.2"
+        versionCode = 9
+        versionName = "1.6.0"
     }
 
     signingConfigs {
@@ -50,4 +50,6 @@ android {
 dependencies {
     // leitura do texto dos PDFs (títulos das músicas) e separação de páginas
     implementation("com.tom-roush:pdfbox-android:2.0.27.0")
+    // reconhecimento de texto (OCR) offline para PDFs escaneados
+    implementation("com.google.mlkit:text-recognition:16.0.0")
 }

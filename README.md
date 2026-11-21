@@ -2,7 +2,12 @@
 
 App Android para afinar o violão pelo microfone do celular, na afinação padrão (E A D G B E).
 
-**Versão atual: 1.5.2**
+**Versão atual: 1.6.0**
+
+### Novidades da 1.6.0
+- **PDFs escaneados (imagem)** agora também são separados automaticamente: o app lê cada página com
+  **reconhecimento de texto (OCR)** do Google ML Kit, que funciona **offline**, e acha os títulos pelo tamanho da letra.
+  Mostra o progresso "página X de Y". Só se nem o OCR conseguir ler é que pede para guardar inteiro.
 
 ### Novidades da 1.5.2
 - Separação de songbooks muito melhor: o app agora acha o **título de cada música pelo tamanho da letra**
@@ -103,7 +108,8 @@ atualizações instalam por cima sem perder as configurações.
 
 ## Técnica
 
-- Kotlin nativo; única biblioteca externa: [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) para ler o texto dos PDFs e separar páginas.
+- Kotlin nativo. Bibliotecas: [PdfBox-Android](https://github.com/TomRoush/PdfBox-Android) para ler o texto dos PDFs e separar páginas,
+  e [ML Kit Text Recognition](https://developers.google.com/ml-kit/vision/text-recognition/v2/android) (OCR offline) para PDFs escaneados.
 - Detecção de frequência pelo algoritmo YIN (44,1 kHz, janela de 4096 amostras),
   com filtro de saltos, mediana das últimas 7 leituras e média móvel para estabilizar o ponteiro.
 

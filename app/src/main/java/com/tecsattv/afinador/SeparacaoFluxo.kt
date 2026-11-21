@@ -46,10 +46,20 @@ class SeparacaoFluxo(
         val espera = esperando("Lendo \"$nome\"…")
         Thread {
             val tmp = File(act.cacheDir, "importar-${System.currentTimeMillis()}.pdf")
-            val res = try {
+            var res = try {
                 act.contentResolver.openInputStream(uri)?.use { i -> tmp.outputStream().use { i.copyTo(it) } }
                 Separador.analisar(tmp)
             } catch (e: Throwable) { null }
+            // PDF de imagem (ou texto ilegível): lê as páginas com reconhecimento de texto (OCR)
+            if (res == null || res.semTexto) {
+                act.runOnUiThread { espera.setMessage("PDF de imagem: lendo as páginas com reconhecimento de texto…") }
+                val ocr = try {
+                    Separador.analisarOcr(act, tmp) { i, total ->
+                        act.runOnUiThread { espera.setMessage("Reconhecendo o texto… página $i de $total") }
+                    }
+                } catch (e: Throwable) { null }
+                if (ocr != null) res = ocr
+            }
             act.runOnUiThread {
                 espera.dismiss()
                 when {
@@ -64,7 +74,7 @@ class SeparacaoFluxo(
     /** PDF escaneado (só imagem): não há texto para ler. */
     private fun semTexto(tmp: File, nome: String) {
         AlertDialog.Builder(act).setTitle(nome)
-            .setMessage("Este PDF é uma imagem (escaneado), então não dá para ler os títulos automaticamente.\n\nPosso guardá-lo inteiro em Cifras › $cifraPadrao; depois use ✂ Separar no leitor para dividir as músicas.")
+            .setMessage("Não consegui ler o texto deste PDF, nem com reconhecimento de texto (imagem muito fraca ou manuscrita).\n\nPosso guardá-lo inteiro em Cifras › $cifraPadrao; depois use ✂ Separar no leitor para dividir as músicas.")
             .setPositiveButton("Guardar inteiro") { _, _ ->
                 val dir = Biblioteca.pasta(act, "cifras", cifraPadrao).apply { mkdirs() }
                 tmp.copyTo(Biblioteca.arquivoLivre(dir, Biblioteca.nomeSeguro(nome.removeSuffix(".pdf"))))
